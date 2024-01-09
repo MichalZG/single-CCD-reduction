@@ -33,6 +33,10 @@ python app.py -d /path/to/ccd_image_file -md /path/to/master_dark_frame -mb /pat
 | -mb, --master_bias | No  | Path to the Master bias frame file  |
 | -mf, --master_flat  | No   |  Path to the Master flat frame file.      |
 
+### Output
+The processed CCD image file will be saved with the suffix "_out" in the `pipeline_out` folder within the same directory as the input file.
+
+
 ## Development
 
 Imports are organized with `isort`.
