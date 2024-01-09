@@ -55,7 +55,11 @@ def astro_reduction(args):
     ccd_file.meta["HISTORY"] = "Dark corrected"
     ccd_file.meta["HISTORY"] = "Flat corrected"
     ccd_file.data = ccd_file.data.astype(np.uint16)
-    ccd_file.write('~/astro/test.fits', overwrite=True)
+    file_name = os.path.splitext(os.path.basename(args.dir))[0]
+    directory = os.path.dirname(args.dir)
+    new_path = os.path.join(directory, "pipeline_out", f"{file_name}_out.fits")
+    os.makedirs(os.path.join(directory, "pipeline_out"), exist_ok=True)
+    ccd_file.write(new_path, overwrite=True)
     
 
 
