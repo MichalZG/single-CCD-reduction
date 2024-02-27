@@ -54,6 +54,7 @@ def astro_reduction(args):
     ccd_file.meta["HISTORY"] = "Bias corrected"
     ccd_file.meta["HISTORY"] = "Dark corrected"
     ccd_file.meta["HISTORY"] = "Flat corrected"
+    ccd_file.data = np.rint(ccd_file) #round values to nearest integer
     ccd_file.data = ccd_file.data.astype(np.uint16)
     file_name = os.path.splitext(os.path.basename(args.dir))[0]
     directory = os.path.dirname(args.dir)
