@@ -20,48 +20,67 @@ def log(message, *args):
     logging.info("%s  " + message, formatted_time, *args)
 
 
-def astro_reduction(args):
-    ccd_file = CCDData(
-                fits.getdata(args.dir), meta=fits.getheader(args.dir), unit="adu"
-            )
-    m_bias = CCDData(
-        fits.getdata(args.master_bias),
-        meta=fits.getheader(args.master_bias),
-        unit="adu",
-    )
-    m_flat = CCDData(
-        fits.getdata(args.master_flat),
-        meta=fits.getheader(args.master_flat),
-        unit="adu",
-    )
-    m_dark = CCDData(
-        fits.getdata(args.master_dark),
-        meta=fits.getheader(args.master_dark),
-        unit="adu",
-    )
-    bias_subtracted = ccdp.subtract_bias(ccd_file, m_bias)
 
-    dark_subtracted = ccdp.subtract_dark(
-                    bias_subtracted,
-                    m_dark,
-                    exposure_time="EXPTIME",
-                    exposure_unit=u.adu,
-                    scale=True,
-                )
-    ccd_file = ccdp.flat_correct(
-                    dark_subtracted, m_flat, min_value=0.01
-                )
-    ccd_file.meta["HISTORY"] = "Bias corrected"
-    ccd_file.meta["HISTORY"] = "Dark corrected"
-    ccd_file.meta["HISTORY"] = "Flat corrected"
+def open_master_bias(master_bias_path):
+    m_bias = CCDData(
+        fits.getdata(master_bias_path),
+        meta=fits.getheader(master_bias_path),
+        unit="adu",
+    )
+    return m_bias
+
+def open_master_dark(master_dark_path):
+    m_dark = CCDData(
+        fits.getdata(master_dark_path),
+        meta=fits.getheader(master_dark_path),
+        unit="adu",
+    )
+    return m_dark
+
+def open_master_flat(master_flat_path):
+    m_flat = CCDData(
+        fits.getdata(master_flat_path),
+        meta=fits.getheader(master_flat_path),
+        unit="adu",
+    )
+    return m_flat
+
+
+def astro_reduction(im_dir, m_dark, m_bias, m_flat):
+    ccd_file = CCDData(
+                fits.getdata(im_dir), meta=fits.getheader(im_dir), unit="adu"
+            )
+
+    if m_bias is not None:
+        ccd_file = ccdp.subtract_bias(ccd_file, m_bias)
+        ccd_file.meta["HISTORY"] = "Bias corrected"
+
+    if m_dark is not None:
+        ccd_file = ccdp.subtract_dark(
+                        ccd_file,
+                        m_dark,
+                        exposure_time="EXPTIME",
+                        exposure_unit=u.adu,
+                        scale=True,
+                    )
+        ccd_file.meta["HISTORY"] = "Dark corrected"
+
+    if m_flat is not None:
+        ccd_file = ccdp.flat_correct(
+                        ccd_file, m_flat, min_value=0.01
+                    )
+        ccd_file.meta["HISTORY"] = "Flat corrected"
+
+    ccd_file.data = np.rint(ccd_file.data)
     ccd_file.data = ccd_file.data.astype(np.uint16)
-    file_name = os.path.splitext(os.path.basename(args.dir))[0]
-    directory = os.path.dirname(args.dir)
+
+    file_name = os.path.splitext(os.path.basename(im_dir))[0]
+    directory = os.path.dirname(im_dir)
     new_path = os.path.join(directory, "pipeline_out", f"{file_name}_out.fits")
     os.makedirs(os.path.join(directory, "pipeline_out"), exist_ok=True)
+
     ccd_file.write(new_path, overwrite=True)
     
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Reduce astro images")
@@ -98,7 +117,11 @@ def parse_args():
 
 def main():
     args = parse_args()
-    astro_reduction(args)
+    m_bias = open_master_bias(args.master_bias)
+    m_dark = open_master_dark(args.master_dark)
+    m_flat = open_master_flat(args.master_flat)
+
+    astro_reduction(args.dir, m_dark, m_bias, m_flat)
 
 
 if __name__ == "__main__":
